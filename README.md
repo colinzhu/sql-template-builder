@@ -14,9 +14,9 @@ Here's an example usage:
 SqlTemplateBuilder builder = new SqlTemplateBuilder()
         .select("*")
         .table("employees")
-        .eq("last_name", "Smith")
+        .eq("last_name", null)
         .in("department", Set.of("Sales", "Marketing"))
-        .gtEq("salary", 50000)
+        .gtEq("salary", 5000)
         .orderBy("last_name ASC")
         .fetchFirstX(10);
 String sql = builder.buildTemplate();
@@ -26,18 +26,33 @@ Map<String, Object> params = builder.buildParams();
 The resulting SQL statement would be:
 ```oracle-sql
 SELECT * FROM employees
-WHERE last_name = #{last_nameeq} AND department IN (#{departmentin0},#{departmentin1}) AND salary >= #{salarygtEq}
+WHERE department IN (#{departmentin0},#{departmentin1})
 ORDER BY #{orderBy} ASC FETCH FIRST #{fetchFirstX} ROWS ONLY
 ```
 
 And the params map would contain the following key-value pairs:
-```json
-{
-  "last_nameeq": "Smith",
-  "departmentin0": "Sales",
-  "departmentin1": "Marketing",
-  "salarygtEq": 50000,
-  "orderBy": "last_name ASC",
-  "fetchFirstX": 10
-}
 ```
+{departmentin0=Marketing, departmentin1=Sales, fetchFirstX=10, orderBy=last_name ASC, salarygtEq=5000}
+```
+
+Example with Vert.x SqlTemplate:
+```java
+
+SqlTemplateBuilder builder = new SqlTemplateBuilder()
+        .select("*")
+        .table("employees")
+        .eq("last_name", "Smith")
+        .in("department", Set.of("Sales", "Marketing"))
+        .gtEq("salary", 50000)
+        .orderBy("last_name ASC")
+        .fetchFirstX(10);
+
+SqlTemplate
+        .forQuery(client, builder.buildTemplate())
+        .execute(builder.buildParams())
+        .onSuccess(employees -> {
+            employees.forEach(row -> {
+                System.out.println(row.getString("last_name") + " " + row.getString("last_name"));
+            });
+        });
+  ```
