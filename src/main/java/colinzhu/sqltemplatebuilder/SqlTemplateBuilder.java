@@ -20,7 +20,7 @@ public class SqlTemplateBuilder {
     public String buildTemplate() {
         String actionOnTable = String.format("SELECT %s FROM %s", select, table);
         String where = criteria.size() == 0 ? "" : "WHERE " + String.join(" AND ", criteria);;
-        return String.join(" ", actionOnTable, where, orderBy, fetch);
+        return List.of(actionOnTable, where, orderBy, fetch).stream().filter(s -> !s.isBlank()).collect(Collectors.joining(" "));
     }
     public Map<String, Object> buildParams() {
         return params;

@@ -1,6 +1,6 @@
 package colinzhu.sqltemplatebuilder;
 
-public class SqlTemplateBuilderTest {
+public class SqlTemplateBuilderExample {
     public static void main(String[] args) {
         SqlTemplateBuilder builder = new SqlTemplateBuilder();
         builder.select("*")
