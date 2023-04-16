@@ -10,26 +10,47 @@ import java.util.stream.Collectors;
 public class SqlTemplateBuilder {
     private String orderBy = ""; // default no order by
     private String fetch = ""; // default no fetch first X rows only
-    private List<String> criteria = new LinkedList<>();
+    private List<String> filterCriteria = new LinkedList<>();
+    private List<String> updateKeyValues = new LinkedList<>();
     private Map<String, Object> params = new TreeMap<>();
     @Setter
     private String select;
     @Setter
+    private boolean update;
+    @Setter
     private String table;
 
     public String buildTemplate() {
-        String actionOnTable = String.format("SELECT %s FROM %s", select, table);
-        String where = criteria.size() == 0 ? "" : "WHERE " + String.join(" AND ", criteria);;
+        String actionOnTable;
+        if (select != null) {
+             actionOnTable = String.format("SELECT %s FROM %s", select, table);
+        } else if (update) {
+            actionOnTable = String.format("UPDATE %s SET %s", table, String.join(",", updateKeyValues));
+        } else {
+            throw new IllegalStateException("Please at least provide 'select' or 'update'");
+        }
+        String where = filterCriteria.size() == 0 ? "" : "WHERE " + String.join(" AND ", filterCriteria);;
         return List.of(actionOnTable, where, orderBy, fetch).stream().filter(s -> !s.isBlank()).collect(Collectors.joining(" "));
     }
+
+
     public Map<String, Object> buildParams() {
         return params;
+    }
+
+    public <T> SqlTemplateBuilder set(String column, T value) {
+        if (value != null) {
+            String key = column + "set";
+            updateKeyValues.add(String.format("%s = #{%s}", column, key));
+            params.put(key, value);
+        }
+        return this;
     }
 
     public <T> SqlTemplateBuilder eq(String column, T value) {
         if (value != null) {
             String key = column + "eq";
-            criteria.add(String.format("%s = #{%s}", column, key));
+            filterCriteria.add(String.format("%s = #{%s}", column, key));
             params.put(key, value);
         }
         return this;
@@ -39,7 +60,7 @@ public class SqlTemplateBuilder {
         if (values != null && values.size() > 0) {
             String key = column + "in";
             Map<String, T> inKeyValueMap = getInKeyValueMap(values, key);
-            criteria.add(String.format("%s IN (%s)", column, inKeyValueMap.keySet().stream().sorted().map(k -> "#{" + k + "}").collect(Collectors.joining(","))));
+            filterCriteria.add(String.format("%s IN (%s)", column, inKeyValueMap.keySet().stream().sorted().map(k -> "#{" + k + "}").collect(Collectors.joining(","))));
             params.putAll(inKeyValueMap);
         }
         return this;
@@ -48,7 +69,7 @@ public class SqlTemplateBuilder {
     public <T> SqlTemplateBuilder gtEq(String column, T value) {
         if (value != null) {
             String key = column + "gtEq";
-            criteria.add(String.format("%s >= #{%s}", column, key));
+            filterCriteria.add(String.format("%s >= #{%s}", column, key));
             params.put(key, value);
         }
         return this;
@@ -56,7 +77,7 @@ public class SqlTemplateBuilder {
     public <T> SqlTemplateBuilder ltEq(String column, T value) {
         if (value != null) {
             String key = column + "ltEq";
-            criteria.add(String.format("%s <= #{%s}", column, key));
+            filterCriteria.add(String.format("%s <= #{%s}", column, key));
             params.put(key, value);
         }
         return this;

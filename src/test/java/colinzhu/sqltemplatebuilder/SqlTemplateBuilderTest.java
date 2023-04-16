@@ -23,12 +23,28 @@ class SqlTemplateBuilderTest {
         String actual = builder.buildTemplate();
         Assertions.assertEquals(expected, actual);
     }
+    @Test
+    @DisplayName("builds template with update and table")
+    void testBuildTemplateUpdate() {
+        builder.update(true).table("users").set("name", "Apple").set("id", null);
+        String expected = "UPDATE users SET name = #{nameset}";
+        String actual = builder.buildTemplate();
+        Assertions.assertEquals(expected, actual);
+    }
 
     @Test
     @DisplayName("builds template with where clause")
     void testBuildTemplateWithWhere() {
         builder.select("id, name").table("users").eq("status", "ACTIVE");
         String expected = "SELECT id, name FROM users WHERE status = #{statuseq}";
+        String actual = builder.buildTemplate();
+        Assertions.assertEquals(expected, actual);
+    }
+    @Test
+    @DisplayName("builds template with update and table with where clause")
+    void testBuildTemplateUpdateWithWhere() {
+        builder.update(true).table("users").set("name", "Apple").set("id", null).eq("status", "ACTIVE");
+        String expected = "UPDATE users SET name = #{nameset} WHERE status = #{statuseq}";
         String actual = builder.buildTemplate();
         Assertions.assertEquals(expected, actual);
     }
@@ -113,6 +129,35 @@ class SqlTemplateBuilderTest {
         Assertions.assertEquals(expectedParams, actualParams);
     }
 
+    @Test
+    public void testBuildParamsUpdate() {
+        builder.update(true)
+                .table("my_table")
+                .set("column1", "newValue1")
+                .set("column2", null)
+                .set("column3", 30)
+                .eq("column1", "value1")
+                .in("column2", Set.of("value2", "value3"))
+                .gtEq("column3", 10)
+                .ltEq("column4", 20)
+                .orderBy("column1 DESC")
+                .fetchFirstX(10);
+
+        Map<String, Object> expectedParams = new TreeMap<>();
+        expectedParams.put("column1eq", "value1");
+        expectedParams.put("column1set", "newValue1");
+        expectedParams.put("column2in0", "value2");
+        expectedParams.put("column2in1", "value3");
+        expectedParams.put("column3gtEq", 10);
+        expectedParams.put("column3set", 30);
+        expectedParams.put("column4ltEq", 20);
+        expectedParams.put("orderBy", "column1 DESC");
+        expectedParams.put("fetchFirstX", 10);
+
+        Map<String, Object> actualParams = builder.buildParams();
+
+        Assertions.assertEquals(expectedParams, actualParams);
+    }
     @Test
     public void testBuildParamsNoCriteria() {
         builder.select("column1, column2")
